@@ -40,7 +40,7 @@ def genPair(entries):
             hour1 = time1.hour
             hour2 = time2.hour
             if pid1 != pid2:
-                pairs.append([uid, pid1, day1, hour1, pid2, day2, hour2])
+                pairs.append([uid, pid1, day1, hour1, pid2, day2, hour2, entries[i][3]])
     return pairs
 
 

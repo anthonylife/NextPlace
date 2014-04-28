@@ -32,7 +32,7 @@ def main():
     parser.add_argument('-m', type=int, action='store',
             dest='filter_method', help='choose which method to filter data')
     if len(sys.argv) != 5:
-        print 'Command e.g.: python genConsequtiveCheckinPair.py -d 0(1,2) -m 0(1)'
+        print 'Command e.g.: python filterUserAndLocationByFreq.py -d 0(1,2) -m 0(1)'
         sys.exit(1)
 
     para = parser.parse_args()

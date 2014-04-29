@@ -31,12 +31,23 @@ if __name__ == "__main__":
     settings["TRAIN_PAIR_FILE1"] = "data/Brightkite_Train_Checkinpair.csv"
     settings["VALI_PAIR_FILE1"] = "data/Brightkite_Vali_Checkinpair.csv"
     settings["TEST_PAIR_FILE1"] = "data/Brightkite_Test_Checkinpair.csv"
-    settings["TRAIN_PAIR_FILE2"] = "data/Brightkite_Train_Checkinpair.csv"
-    settings["VALI_PAIR_FILE2"] = "data/Brightkite_Vali_Checkinpair.csv"
-    settings["TEST_PAIR_FILE2"] = "data/Brightkite_Test_Checkinpair.csv"
-    settings["TRAIN_PAIR_FILE3"] = "data/Brightkite_Train_Checkinpair.csv"
-    settings["VALI_PAIR_FILE3"] = "data/Brightkite_Vali_Checkinpair.csv"
-    settings["TEST_PAIR_FILE3"] = "data/Brightkite_Test_Checkinpair.csv"
+    settings["CV_PAIR_FILE1"] = "data/Brightkite_CV_Checkinpair.csv"
+    settings["TRAIN_PAIR_FILE2"] = "data/Gowalla1_Train_Checkinpair.csv"
+    settings["VALI_PAIR_FILE2"] = "data/Gowalla1_Vali_Checkinpair.csv"
+    settings["TEST_PAIR_FILE2"] = "data/Gowalla1_Test_Checkinpair.csv"
+    settings["CV_PAIR_FILE2"] = "data/Gowalla1_CV_Checkinpair.csv"
+    settings["TRAIN_PAIR_FILE3"] = "data/Gowalla2_Train_Checkinpair.csv"
+    settings["VALI_PAIR_FILE3"] = "data/Gowalla2_Vali_Checkinpair.csv"
+    settings["TEST_PAIR_FILE3"] = "data/Gowalla2_Test_Checkinpair.csv"
+    settings["CV_PAIR_FILE3"] = "data/Gowalla2_CV_Checkinpair.csv"
+    settings["TRAIN_RATIO"] = 0.7
+    settings["VALI_RATIO"] = 0.1
+    settings["TEST_RATIO"] = 0.2
+    settings["CV_NUM"] = 10
+    settings["NEAR_PLACE_FILE1"] = "data/Birghtkite_Near_Place.csv"
+    settings["NEAR_PLACE_FILE2"] = "data/Gowalla1_Near_Place.csv"
+    settings["NEAR_PLACE_FILE3"] = "data/Gowalla2_Near_Place.csv"
+    settings["DISTANCE_THRESHOLD"] = 10
 
     # Write result
     json.dump(settings, wfp, sort_keys=True, indent=4)

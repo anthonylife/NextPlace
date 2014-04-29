@@ -44,10 +44,15 @@ if __name__ == "__main__":
     settings["VALI_RATIO"] = 0.1
     settings["TEST_RATIO"] = 0.2
     settings["CV_NUM"] = 10
-    settings["NEAR_PLACE_FILE1"] = "data/Birghtkite_Near_Place.csv"
+    settings["NEAR_PLACE_FILE1"] = "data/Brightkite_Near_Place.csv"
     settings["NEAR_PLACE_FILE2"] = "data/Gowalla1_Near_Place.csv"
     settings["NEAR_PLACE_FILE3"] = "data/Gowalla2_Near_Place.csv"
     settings["DISTANCE_THRESHOLD"] = 10
+    settings["GRID_PLACE_FILE1"] = "data/Brightkite_Grid_Place.csv"
+    settings["GRID_PLACE_FILE2"] = "data/Gowalla1_Grid_Place.csv"
+    settings["GRID_PLACE_FILE3"] = "data/Gowalla2_Grid_Place.csv"
+    settings["GRID_LAT"] = 0.05
+    settings["GRID_LNG"] = 0.05
 
     # Write result
     json.dump(settings, wfp, sort_keys=True, indent=4)

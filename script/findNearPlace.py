@@ -114,7 +114,7 @@ def main():
         print i'''
 
     # quad tree
-    index_extent = (-180, -90, 180, 90)
+    index_extent = (-90, -180, 90, 180)
     index = Quadtree(index_extent)
     for pid in loc_latlng:
         index.add(pid, loc_latlng[pid])

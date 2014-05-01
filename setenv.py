@@ -9,7 +9,7 @@ if __name__ == "__main__":
     wfp = open(setting_file, "w")
     settings["ROOT_PATH"] = os.getcwd() + "/"
 
-    # Configuration
+    ### Configuration by user
     settings["SRC_DATA_FILE1_1"] = "data/Brightkite_totalCheckins.txt"
     settings["SRC_DATA_FILE1_2"] = "data/Brightkite_edges.txt"
     settings["SRC_DATA_FILE2_1"] = "data/Gowalla_totalCheckins.txt"
@@ -53,6 +53,12 @@ if __name__ == "__main__":
     settings["GRID_PLACE_FILE3"] = "data/Gowalla2_Grid_Place.csv"
     settings["GRID_LAT"] = 0.05
     settings["GRID_LNG"] = 0.05
+
+    settings["MAX_TOPK"] = 20
+    #Popular-based Method
+    settings["POPULAR_SUBMISSION_PATH"] = "results/Popular_Result.dat"
+
+    #
 
     # Write result
     json.dump(settings, wfp, sort_keys=True, indent=4)

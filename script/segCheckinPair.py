@@ -20,6 +20,8 @@
 #   1.segment the dataset into training and test set randomly     #
 #   2.segment the dataset into training and test set based on time#
 #   3.cross validation                                            #
+# Note: same as previous works, we need to ensure that at least   #
+#   one item and one user occurred in training data.              #
 ###################################################################
 
 import sys, csv, json, argparse, random, math
@@ -62,14 +64,52 @@ def main():
         tr_wfd = csv.writer(open(train_outfile, "w"), lineterminator="\n")
         va_wfd = csv.writer(open(vali_outfile, "w"), lineterminator="\n")
         te_wfd = csv.writer(open(test_outfile, "w"), lineterminator="\n")
+        tr_uid = set([])
+        tr_pid = set([])
+        va_entry = []
+        te_entry = []
         for entry in csv.reader(open(checkin_infile)):
             s_ratio = random.random()
+            uid, pid1, pid2 = entry[0], entry[1], entry[4]
             if s_ratio < settings["TRAIN_RATIO"]:
                 tr_wfd.writerow(entry)
+                tr_uid.add(uid)
+                tr_pid.add(pid1)
+                tr_pid.add(pid2)
             elif s_ratio < settings["TRAIN_RATIO"] + settings["VALI_RATIO"]:
+                #va_wfd.writerow(entry)
+                va_entry.append(entry)
+            else:
+                #te_wfd.writerow(entry)
+                te_entry.append(entry)
+        for entry in va_entry:
+            uid, pid1, pid2 = entry[0], entry[1], entry[4]
+            if uid not in tr_uid:
+                tr_wfd.writerow(entry)
+                tr_uid.add(uid)
+            elif pid1 not in tr_pid:
+                tr_wfd.writerow(entry)
+                tr_pid.add(pid1)
+            elif pid2 not in tr_pid:
+                tr_wfd.writerow(entry)
+                tr_pid.add(pid2)
+            else:
                 va_wfd.writerow(entry)
+        del va_entry
+        for entry in te_entry:
+            if uid not in tr_uid:
+                tr_wfd.writerow(entry)
+                tr_uid.add(uid)
+            elif pid1 not in tr_pid:
+                tr_wfd.writerow(entry)
+                tr_pid.add(pid1)
+            elif pid2 not in tr_pid:
+                tr_wfd.writerow(entry)
+                tr_pid.add(pid2)
             else:
                 te_wfd.writerow(entry)
+        del te_entry
+
 
     elif para.seg_method == 1:
         tr_wfd = csv.writer(open(train_outfile, "w"), lineterminator="\n")

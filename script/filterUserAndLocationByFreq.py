@@ -16,6 +16,8 @@
 ###################################################################
 # Date: 2014/4/26                                                 #
 # Filter users and locations by the specified frequency           #
+# Note:                                                           #
+#   1.we should remove pois with no latitude and longitude info   #
 ###################################################################
 
 import sys, csv, json, argparse
@@ -24,6 +26,19 @@ from collections import defaultdict
 with open("../SETTINGS.json") as fp:
     settings = json.loads(fp.read())
 
+
+def loadPoiInfo(infile, data_num):
+    pois = {}
+    if data_num == 0 or data_num == 1:
+        for entry in open(infile):
+            parts = entry.strip("\r\t\n").split("\t")
+            pid, lat, lng = int(parts[4]), float(parts[2]), float(parts[3])
+            pois[pid] = (lat, lng)
+    elif data_num == 2:
+        for entry in csv.reader(open(infile)):
+            pid, lat, lng = int(entry[0]), float(entry[2]), float(entry[3])
+            pois[pid] = (lat, lng)
+    return pois
 
 def main():
     parser = argparse.ArgumentParser()
@@ -38,14 +53,22 @@ def main():
     para = parser.parse_args()
     if para.data_num == 0:
         checkin_infile = settings["ROOT_PATH"] + settings["CHECKIN_PAIR_FILE1"]
+        poi_infile = settings["ROOT_PATH"] + settings["SRC_DATA_FILE1_1"]
         checkin_outfile = settings["ROOT_PATH"] + settings["FILTER_CHECKIN_PATR_FILE1"]
+        loc_latlng = loadPoiInfo(poi_infile, para.data_num)
     elif para.data_num == 1:
         checkin_infile = settings["ROOT_PATH"] + settings["CHECKIN_PAIR_FILE2"]
+        poi_infile = settings["ROOT_PATH"] + settings["SRC_DATA_FILE2_1"]
         checkin_outfile = settings["ROOT_PATH"] + settings["FILTER_CHECKIN_PATR_FILE2"]
+        loc_latlng = loadPoiInfo(poi_infile, para.data_num)
     elif para.data_num == 2:
         checkin_infile = settings["ROOT_PATH"] + settings["CHECKIN_PAIR_FILE3"]
+        poi_infile = settings["ROOT_PATH"] + settings["SRC_DATA_FILE3_3"]
         checkin_outfile = settings["ROOT_PATH"] + settings["FILTER_CHECKIN_PAIR_FILE3"]
+        loc_latlng = loadPoiInfo(poi_infile, para.data_num)
 
+
+    # Filtering
     uid_set = set([])
     pid_set = set([])
     if para.filter_method == 0:
@@ -58,10 +81,12 @@ def main():
                 continue
             entry = map(int, line[:-1])
             uid, pid1, pid2 = entry[0], entry[1], entry[4]
-            pid_uid[pid1].add(uid)
-            pid_uid[pid2].add(uid)
-            uid_pid[uid].add(pid1)
-            uid_pid[uid].add(pid2)
+            if pid1 in loc_latlng:
+                pid_uid[pid1].add(uid)
+                uid_pid[uid].add(pid1)
+            if pid2 in loc_latlng:
+                pid_uid[pid2].add(uid)
+                uid_pid[uid].add(pid2)
         removed_pid = set([])
         removed_uid = set([])
         while True:
@@ -92,9 +117,10 @@ def main():
         uid_record = defaultdict(set)
         for i, entry in enumerate(data):
             uid, pid1, pid2 = entry[0], entry[1], entry[4]
-            uid_record[uid].add(i)
-            pid_record[pid1].add(i)
-            pid_record[pid2].add(i)
+            if pid1 in loc_latlng and pid2 in loc_latlng:
+                uid_record[uid].add(i)
+                pid_record[pid1].add(i)
+                pid_record[pid2].add(i)
         removed_record = set([])
         removed_pid = set([])
         removed_uid = set([])

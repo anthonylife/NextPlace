@@ -42,6 +42,7 @@ class PopularityRE:
 
     def loadData(self, data_num):
         self.grids_pois = loadGridInfo(self.grid_path)
+        print len(self.grids_pois)
         self.pois_latlng = loadPoiInfo(self.poi_path, data_num)
 
     def train(self):
@@ -64,16 +65,14 @@ class PopularityRE:
         recommendation_result = {}
         for i, entry in enumerate(csv.reader(open(self.tedata_path))):
             uid, pid1 = int(entry[0]), int(entry[1])
-            grididx = getNearGridsForPOI(self.pois_latlng[pid1], ndimx, ndimy)
-            print getNearGrids(grididx, ndimx, ndimy)
-            raw_input()
             near_grids = getNearGridsForPOI(self.pois_latlng[pid1], ndimx, ndimy, True)
             candidate_pois = []
             for grididx in near_grids:
                 candidate_pois += self.grids_pois[grididx[0]][grididx[1]]
             pois_score = [[poi, self.pois_popularity[poi]] for poi in candidate_pois]
             result = sorted(pois_score, key=lambda x:x[1], reverse=True)[:settings["MAX_TOPK"]]
-            recommendation_result[i] = result
+            recommendation_result[i] = [pair[0] for pair in result]
+            print i
         write_submission(recommendation_result, submission_path)
 
 

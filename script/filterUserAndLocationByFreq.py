@@ -17,7 +17,7 @@
 # Date: 2014/4/26                                                 #
 # Filter users and locations by the specified frequency           #
 # Note:                                                           #
-#   1.we should remove pois with no latitude and longitude info   #
+#   1.we should remove pois with no latitude and longitude info.  #
 ###################################################################
 
 import sys, csv, json, argparse
@@ -66,7 +66,9 @@ def main():
         poi_infile = settings["ROOT_PATH"] + settings["SRC_DATA_FILE3_3"]
         checkin_outfile = settings["ROOT_PATH"] + settings["FILTER_CHECKIN_PAIR_FILE3"]
         loc_latlng = loadPoiInfo(poi_infile, para.data_num)
-
+    else:
+        print 'Invalid choice of data set'
+        sys.exit(1)
 
     # Filtering
     uid_set = set([])

@@ -39,7 +39,7 @@ class Evaluation():
             print 'Invalid choice of evaluation method!'
             sys.exit(1)
 
-    def evaluateFscore(standard_result, recommendation_result, topk):
+    def evaluateFscore(self, standard_result, recommendation_result, topk):
         if len(recommendation_result.keys()) != len(standard_result.keys()):
             print 'Number of recommendation items and number of standard results mismatch!'
             sys.exit(1)
@@ -47,9 +47,10 @@ class Evaluation():
         true_pred_num = 0
         true_standard_num = len(standard_result)
         for key in recommendation_result:
-            if len(recommendation_result[key]) != topk:
-                print 'Not enough recommendation result for key %d!' % key
-                sys.exit(1)
+            #if len(recommendation_result[key]) != topk:
+            #    print 'Not enough recommendation result for key %d!' % key
+            #    print recommendation_result[key]
+            #    sys.exit(1)
             for pid in recommendation_result[key]:
                 if pid == standard_result[key]:
                     true_pred_num += 1
@@ -60,7 +61,7 @@ class Evaluation():
         return (precision, recall, f_score)
 
 
-def loadResult(infile, choice):
+def loadResult(infile, choice, topk):
     if choice == 1:
         result = {}
         for i,line in enumerate(csv.reader(open(infile))):
@@ -73,7 +74,7 @@ def loadResult(infile, choice):
         for line in open(infile):
             parts = line.strip("\r\t\n").split("\t")
             key = int(parts[0])
-            result[key] = map(int, parts[1].split(","))
+            result[key] = map(int, parts[1].split(","))[:topk]
         return result
     else:
         print 'Invalid setting of result dataset format!'
@@ -101,22 +102,27 @@ def main():
     elif para.data_num == 2:
         standard_result_file = settings["ROOT_PATH"] + settings["TEST_PAIR_FILE3"]
     else:
-        print 'Invalid choice of data set'
+        print 'Invalid choice of data set!'
         sys.exit(1)
-    if para.algorithm == 0:
+    if para.algorithm_num == 0:
         recommendation_result_file = settings["ROOT_PATH"] + settings["POPULAR_SUBMISSION_PATH"]
+    elif para.algorithm_num == 1:
+        recommendation_result_file = settings["ROOT_PATH"] + settings["PER_POPULAR_SUBMISSION_PATH"]
     else:
-        print 'Invalid choice of algorithm'
+        print 'Invalid choice of algorithm!'
         sys.exit(1)
 
-    standard_result = loadResult(standard_result_file, 1)
-    recommendation_result = loadResult(recommendation_result_file, 2)
+    standard_result = loadResult(standard_result_file, 1, settings["TOPK"])
+    recommendation_result = loadResult(recommendation_result_file, 2, settings["TOPK"])
 
     evaluation = Evaluation()
-    evaluation.evaluate(standard_result,
-                        recommendation_result,
-                        settings["F-score"],
-                        topk1=10)
+    if para.eval_method == 0:
+        evaluation.evaluate(standard_result,
+                            recommendation_result,
+                            settings["F-score"],
+                            settings["TOPK"])
+    else:
+        print 'Invalid choice of evalution method!'
 
 if __name__ == "__main__":
     main()

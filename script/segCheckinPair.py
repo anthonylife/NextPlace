@@ -68,7 +68,11 @@ def main():
         tr_pid = set([])
         va_entry = []
         te_entry = []
+        tag = False
         for entry in csv.reader(open(checkin_infile)):
+            if not tag:
+                tag=True
+                continue
             s_ratio = random.random()
             uid, pid1, pid2 = entry[0], entry[1], entry[4]
             if s_ratio < settings["TRAIN_RATIO"]:
@@ -97,6 +101,7 @@ def main():
                 va_wfd.writerow(entry)
         del va_entry
         for entry in te_entry:
+            uid, pid1, pid2 = entry[0], entry[1], entry[4]
             if uid not in tr_uid:
                 tr_wfd.writerow(entry)
                 tr_uid.add(uid)
@@ -116,7 +121,11 @@ def main():
         va_wfd = csv.writer(open(vali_outfile, "w"), lineterminator="\n")
         te_wfd = csv.writer(open(test_outfile, "w"), lineterminator="\n")
         dates = []
+        tag = False
         for entry in csv.reader(open(checkin_infile)):
+            if not tag:
+                tag = True
+                continue
             dates.append(entry[7])
         dates = sorted(dates)
         tr_date = dates[int(math.floor(len(dates)*settings["TRAIN_RATIO"]))]
@@ -133,7 +142,11 @@ def main():
     elif para.seg_method == 2:
         cv_wfd = csv.writer(open(cv_outfile, "w"), lineterminator="\n")
         cv_data = [[] for i in xrange(settings["CV_NUM"])]
+        tag = False
         for entry in csv.reader(open(checkin_infile)):
+            if not tag:
+                tag = True
+                continue
             r_int = random.randint(0, settings["CV_NUM"]-1)
             cv_data[r_int].append(entry)
         for one_cv in cv_data:

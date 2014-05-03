@@ -54,11 +54,16 @@ if __name__ == "__main__":
     settings["GRID_LAT"] = 0.05
     settings["GRID_LNG"] = 0.05
 
+    settings["TOPK"] = 5
     settings["MAX_TOPK"] = 20
-    #Popular-based Method
+    # Popular-based Method
     settings["POPULAR_SUBMISSION_PATH"] = "results/Popular_Result.dat"
 
-    #
+    # Personal Popular-based Method
+    settings["PER_POPULAR_SUBMISSION_PATH"] = "results/Per_Popular_Result.dat"
+
+    # Evaluation method
+    settings["F-score"] = "F-score"
 
     # Write result
     json.dump(settings, wfp, sort_keys=True, indent=4)

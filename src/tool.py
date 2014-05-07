@@ -156,6 +156,10 @@ def rGaussian(k):
     return factor
 
 
+def logitLoss(pos_score, neg_score):
+    return (1-1.0/(1+math.exp(-(pos_score-neg_score))))
+
+
 def test():
     # Testing function checkBoundary()
     print "[0, 3599]"

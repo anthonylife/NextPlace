@@ -14,8 +14,8 @@
 #limitations under the License.
 
 ###################################################################
-# Date: 2014/5/3                                                  #
-# Probabilistic Matric Factorization with Pairwise Learning for   #
+# Date: 2014/5/7                                                  #
+# Factorized Personalized Markov Chain with Pairwise Learning for #
 #   implicit feedback data.                                       #
 ###################################################################
 
@@ -30,15 +30,15 @@ from data_io import write_submission
 with open("../../SETTINGS.json") as fp:
     settings = json.loads(fp.read())
 
-class PMF():
+class FPMC():
     def __init__(self):
         # Method control variable
-        self.niters = 25
+        self.niters = 50
         self.nsample = 5
 
         # Hyper-parameter setting
         self.ndim = 10
-        self.lr = 0.1
+        self.lr = 0.05
         self.u_reg = 0.1
         self.p_reg = 0.1
         self.bp_reg = 0.1       #bias reg of poi
@@ -55,9 +55,9 @@ class PMF():
         self.grids_pois = loadGridInfo(self.grid_path)
         self.pois_latlng = loadPoiInfo(self.poi_path, data_num)
         init_para = None
-        if init_choice == settings["PMF_INIT_ZERO"]:
+        if init_choice == settings["FPMC_INIT_ZERO"]:
             init_para = rZero
-        elif init_choice == settings["PMF_INIT_GAUSSIAN"]:
+        elif init_choice == settings["FPMC_INIT_GAUSSIAN"]:
             init_para = rGaussian
         else:
             print 'Choice of model initialization error.'
@@ -73,84 +73,80 @@ class PMF():
             self.user_ids, self.ruser_ids, self.poi_ids, self.rpoi_ids, self.user_factor,\
                     self.poi_factor, self.poi_bias = self.load_model()
 
-    def genTrainPairs(self):
-        tr_pair = []
+    def genTrainTriples(self):
+        tr_triple = []
         index_extent = (-90, -180, 90, 180)
         ndimx = int((index_extent[3]-index_extent[1])/settings["GRID_LNG"])
         ndimy = int((index_extent[2]-index_extent[0])/settings["GRID_LAT"])
-        user_visit = defaultdict(set)
         idx = 0
         for entry in csv.reader(open(self.trdata_path)):
-            sys.stdout.write("\rFINISHED PAIR NUM: %d. " % (idx+1))
+            sys.stdout.write("\rFINISHED TRIPLE NUM: %d. " % (idx+1))
             sys.stdout.flush()
             idx += 1
             uid, pid1, pid2 = int(entry[0]), int(entry[1]), int(entry[4])
-            if pid1 not in user_visit[uid]:
-                near_grids = getNearGridsForPOI(self.pois_latlng[pid1], ndimx, ndimy, True)
-                candidate_pois = []
-                for grididx in near_grids:
-                    candidate_pois += self.grids_pois[grididx[0]][grididx[1]]
-                if self.nsample < len(candidate_pois):
-                    for pid in random.sample(set(candidate_pois)-set([pid1]), self.nsample):
-                        tr_pair.append([self.user_ids[uid], self.poi_ids[pid1], self.poi_ids[pid]])
-                user_visit[uid].add(pid1)
-                #user_visit[uid].add(pid1)
-            if pid2 not in user_visit[uid]:
-                near_grids = getNearGridsForPOI(self.pois_latlng[pid2], ndimx, ndimy, True)
-                candidate_pois = []
-                for grididx in near_grids:
-                    candidate_pois += self.grids_pois[grididx[0]][grididx[1]]
-                if self.nsample < len(candidate_pois):
-                    for pid in random.sample(set(candidate_pois)-set([pid2]), self.nsample):
-                        tr_pair.append([self.user_ids[uid], self.poi_ids[pid2], self.poi_ids[pid]])
-                user_visit[uid].add(pid2)
-                #user_visit[uid].add(pid2)
-        print len(tr_pair)
-        return tr_pair
+            near_grids = getNearGridsForPOI(self.pois_latlng[pid2], ndimx, ndimy, True)
+            candidate_pois = []
+            for grididx in near_grids:
+                candidate_pois += self.grids_pois[grididx[0]][grididx[1]]
+            if self.nsample < len(candidate_pois):
+                for pid in random.sample(set(candidate_pois)-set([pid2]), self.nsample):
+                    tr_triple.append([self.user_ids[uid], self.poi_ids[pid1], self.poi_ids[pid2], self.poi_ids[pid]])
+        print len(tr_triple)
+        return tr_triple
 
     def train(self):
-        self.tr_pairs = self.genTrainPairs()
+        self.tr_triples = self.genTrainTriples()
         for i in xrange(self.niters):
-            random.shuffle(self.tr_pairs)
-            for j,pair in enumerate(self.tr_pairs):
+            random.shuffle(self.tr_triples)
+            for j, triple in enumerate(self.tr_triples):
                 if self.bias_tag == True:
-                    pos_score = np.dot(self.user_factor[pair[0]], self.poi_factor[pair[1]])\
-                              + self.poi_bias[pair[1]]
-                    neg_score = np.dot(self.user_factor[pair[0]], self.poi_factor[pair[2]])\
-                              + self.poi_bias[pair[2]]
+                    pos_score = np.dot(self.user_factor[triple[0]], self.poi_factor[triple[2]])\
+                              + np.dot(self.poi_factor[triple[1]], self.poi_factor[triple[2]])\
+                              + self.poi_bias[triple[2]]
+                    neg_score = np.dot(self.user_factor[triple[0]], self.poi_factor[triple[3]])\
+                              + np.dot(self.poi_factor[triple[1]], self.poi_factor[triple[3]])\
+                              + self.poi_bias[triple[3]]
                 else:
-                    pos_score = np.dot(self.user_factor[pair[0]], self.poi_factor[pair[1]])
-                    neg_score = np.dot(self.user_factor[pair[0]], self.poi_factor[pair[2]])
+                    pos_score = np.dot(self.user_factor[triple[0]], self.poi_factor[triple[2]])\
+                              + np.dot(self.poi_factor[triple[1]], self.poi_factor[triple[2]])
+                    neg_score = np.dot(self.user_factor[triple[0]], self.poi_factor[triple[3]])\
+                              + np.dot(self.poi_factor[triple[1]], self.poi_factor[triple[3]])
                 logit_loss = logitLoss(pos_score, neg_score)
-                self.user_factor[pair[0]] = self.user_factor[pair[0]]+self.lr*(logit_loss*(self.poi_factor[pair[1]]-self.poi_factor[pair[2]])-self.u_reg*self.user_factor[pair[0]])
-                self.poi_factor[pair[1]] = self.poi_factor[pair[1]]+self.lr*(logit_loss*self.user_factor[pair[0]]-self.p_reg*self.poi_factor[pair[1]])
-                self.poi_factor[pair[2]] = self.poi_factor[pair[2]]+self.lr*(logit_loss*(-self.user_factor[pair[0]])-self.p_reg*self.poi_factor[pair[2]])
+                tmp_diff1 = self.poi_factor[triple[2]]-self.poi_factor[triple[3]]
+                self.user_factor[triple[0]] = self.user_factor[triple[0]]+self.lr*(logit_loss*tmp_diff1-self.u_reg*self.user_factor[triple[0]])
+                self.poi_factor[triple[1]] = self.poi_factor[triple[1]]+self.lr*(logit_loss*tmp_diff1-self.p_reg*self.poi_factor[triple[1]])
+                tmp_diff2 = self.user_factor[triple[0]] + self.poi_factor[triple[1]]
+                self.poi_factor[triple[2]] = self.poi_factor[triple[2]]+self.lr*(logit_loss*tmp_diff2-self.p_reg*self.poi_factor[triple[2]])
+                self.poi_factor[triple[3]] = self.poi_factor[triple[3]]+self.lr*(logit_loss*(-tmp_diff2)-self.p_reg*self.poi_factor[triple[3]])
                 if self.bias_tag == True:
-                    self.poi_bias[pair[1]] = self.poi_bias[pair[1]]+self.lr*(logit_loss*-self.bp_reg*self.poi_bias[pair[1]])
-                    self.poi_bias[pair[2]] = self.poi_bias[pair[2]]+self.lr*(logit_loss*-self.bp_reg*self.poi_bias[pair[2]])
-                if (j+1)%100000 == 0:
-                    sys.stdout.write("\rFINISHED PAIR NUM: %d. " % (j+1))
-                    sys.stdout.flush()
+                    self.poi_bias[triple[2]] = self.poi_bias[triple[2]]+self.lr*(logit_loss*-self.bp_reg*self.poi_bias[triple[2]])
+                    self.poi_bias[triple[3]] = self.poi_bias[triple[3]]+self.lr*(logit_loss*-self.bp_reg*self.poi_bias[triple[3]])
+                sys.stdout.write("\rFINISHED TRIPLE NUM: %d. " % (j+1))
+                sys.stdout.flush()
             print "\nCurrent iteration %d, AUC is %f...\n" % (i+1, self.evaluation())
             #raw_input()
-        self.tr_pairs = None
+        self.tr_triples = None
         self.save_model()
 
     def evaluation(self):
-        correct_pair = 0
-        for pair in self.tr_pairs:
+        correct_triple = 0
+        for triple in self.tr_triples:
             if self.bias_tag == True:
-                pos_score = np.dot(self.user_factor[pair[0]], self.poi_factor[pair[1]])\
-                          + self.poi_bias[pair[1]]
-                neg_score = np.dot(self.user_factor[pair[0]], self.poi_factor[pair[2]])\
-                          + self.poi_bias[pair[2]]
+                pos_score = np.dot(self.user_factor[triple[0]], self.poi_factor[triple[2]])\
+                          + np.dot(self.poi_factor[triple[1]], self.poi_factor[triple[2]])\
+                          + self.poi_bias[triple[2]]
+                neg_score = np.dot(self.user_factor[triple[0]], self.poi_factor[triple[3]])\
+                          + np.dot(self.poi_factor[triple[1]], self.poi_factor[triple[3]])\
+                          + self.poi_bias[triple[3]]
             else:
-                pos_score = np.dot(self.user_factor[pair[0]], self.poi_factor[pair[1]])
-                neg_score = np.dot(self.user_factor[pair[0]], self.poi_factor[pair[2]])
+                pos_score = np.dot(self.user_factor[triple[0]], self.poi_factor[triple[2]])\
+                          + np.dot(self.poi_factor[triple[1]], self.poi_factor[triple[2]])
+                neg_score = np.dot(self.user_factor[triple[0]], self.poi_factor[triple[3]])\
+                          + np.dot(self.poi_factor[triple[1]], self.poi_factor[triple[3]])
 
             if pos_score > neg_score:
-                correct_pair += 1
-        return 1.0*correct_pair/len(self.tr_pairs)
+                correct_triple += 1
+        return 1.0*correct_triple/len(self.tr_triples)
 
     def recommendation(self, submission_path):
         index_extent = (-90, -180, 90, 180)
@@ -167,16 +163,13 @@ class PMF():
             result = []
             pois_score = []
             for c_pid in candidate_pois:
-                if uid in cache_user_poi_score and c_pid in cache_user_poi_score[uid]:
-                    result.append([c_pid, cache_user_poi_score[uid][c_pid]])
+                if self.bias_tag == True:
+                    score = np.dot(self.user_factor[self.user_ids[uid]],self.poi_factor[self.poi_ids[c_pid]])\
+                          + np.dot(self.poi_factor[self.poi_ids[pid1]], self.poi_factor[self.poi_ids[c_pid]])\
+                          + self.poi_bias[self.poi_ids[c_pid]]
                 else:
-                    if self.bias_tag == True:
-                        score = np.dot(self.user_factor[self.user_ids[uid]],\
-                                self.poi_factor[self.poi_ids[c_pid]])\
-                                + self.poi_bias[self.poi_ids[c_pid]]
-                    else:
-                        score = np.dot(self.user_factor[self.user_ids[uid]],\
-                                self.poi_factor[self.poi_ids[c_pid]])
+                    score = np.dot(self.user_factor[self.user_ids[uid]],+ self.poi_factor[self.poi_ids[c_pid]])\
+                          + np.dot(self.poi_factor[self.poi_ids[pid1]], self.poi_factor[self.poi_ids[c_pid]])
                     pois_score.append([c_pid, score])
                     cache_user_poi_score[uid][c_pid] = score
             result = sorted(pois_score, key=lambda x:x[1], reverse=True)[:settings["MAX_TOPK"]]
@@ -205,32 +198,30 @@ class PMF():
             result = []
             pois_score = []
             for c_pid in set(candidate_pois)-user_visited[uid]:
-                if uid in cache_user_poi_score and c_pid in cache_user_poi_score[uid]:
-                    result.append([c_pid, cache_user_poi_score[uid][c_pid]])
+                if self.bias_tag == True:
+                    score = np.dot(self.user_factor[self.user_ids[uid]],self.poi_factor[self.poi_ids[c_pid]])\
+                          + np.dot(self.poi_factor[self.poi_ids[pid1]], self.poi_factor[self.poi_ids[c_pid]])\
+                          + self.poi_bias[self.poi_ids[c_pid]]
                 else:
-                    if self.bias_tag == True:
-                        score = np.dot(self.user_factor[self.user_ids[uid]],\
-                                self.poi_factor[self.poi_ids[c_pid]])\
-                                + self.poi_bias[self.poi_ids[c_pid]]
-                    else:
-                        score = np.dot(self.user_factor[self.user_ids[uid]],\
-                                self.poi_factor[self.poi_ids[c_pid]])
+                    score = np.dot(self.user_factor[self.user_ids[uid]],+ self.poi_factor[self.poi_ids[c_pid]])\
+                          + np.dot(self.poi_factor[self.poi_ids[pid1]], self.poi_factor[self.poi_ids[c_pid]])
                     pois_score.append([c_pid, score])
                     cache_user_poi_score[uid][c_pid] = score
             result = sorted(pois_score, key=lambda x:x[1], reverse=True)[:settings["MAX_TOPK"]]
             recommendation_result[i] = [pair[0] for pair in result]
             sys.stdout.write("\rFINISHED PAIR NUM: %d. " % (i+1))
             sys.stdout.flush()
+        write_submission(recommendation_result, submission_path)
 
     def save_model(self):
-        writer = csv.writer(open(settings["PMF_USER_FACTOR_FILE"], "w"), lineterminator="\n")
+        writer = csv.writer(open(settings["FPMC_USER_FACTOR_FILE"], "w"), lineterminator="\n")
         for i in xrange(len(self.user_factor)):
             writer.writerow([self.ruser_ids[i]]+list(self.user_factor[i]))
-        writer = csv.writer(open(settings["PMF_POI_FACTOR_FILE"], "w"), lineterminator="\n")
+        writer = csv.writer(open(settings["FPMC_POI_FACTOR_FILE"], "w"), lineterminator="\n")
         for i in xrange(len(self.product_factor)):
             writer.writerow([self.rpoi_ids[i]]+list(self.poi_factor[i]))
         if self.bias_tag == True:
-            writer = csv.writer(open(settings["PMF_POI_BIAS_FILE"], "w"), lineterminator="\n")
+            writer = csv.writer(open(settings["FPMC_POI_BIAS_FILE"], "w"), lineterminator="\n")
             for i in xrange(len(self.poi_bias)):
                 writer.writerow([self.rpoi_ids[i]]+list(self.poi_bias[i]))
 
@@ -238,34 +229,34 @@ class PMF():
         self.user_ids = {}
         self.ruser_ids = {}
         u_cnt = 0
-        for entry in csv.reader(open(settings["PMF_USER_FACTOR_FILE"])):
+        for entry in csv.reader(open(settings["FPMC_USER_FACTOR_FILE"])):
             uid = int(entry[0])
             self.user_ids[uid] = u_cnt
             self.ruser_ids[u_cnt] = uid
             u_cnt += 1
         self.user_factor = np.array([rZero(xrange(self.ndim))
             for j in xrange(len(self.user_ids))])
-        for entry in csv.reader(open(settings["PMF_USER_FACTOR_FILE"])):
+        for entry in csv.reader(open(settings["FPMC_USER_FACTOR_FILE"])):
             uid = int(entry[0])
             self.user_factor[self.user_ids[uid]] = np.array(map(float, entry[1:]))
 
         self.poi_ids = {}
         self.rpoi_ids = {}
         p_cnt = 0
-        for entry in csv.reader(open(settings["PMF_POI_FACTOR_FILE"])):
+        for entry in csv.reader(open(settings["FPMC_POI_FACTOR_FILE"])):
             pid = int(entry[0])
             self.poi_ids[pid] = p_cnt
             self.rpoi_ids[p_cnt] = pid
             p_cnt += 1
         self.poi_factor = np.array([rZero(xrange(self.ndim))
             for j in xrange(len(self.poi_ids))])
-        for entry in csv.reader(open(settings["PMF_POI_FACTOR_FILE"])):
+        for entry in csv.reader(open(settings["FPMC_POI_FACTOR_FILE"])):
             pid = int(entry[0])
             self.poi_factor[self.poi_ids[pid]] = np.array(map(float, entry[1:]))
 
         if self.bias_tag == True:
             self.poi_bias = np.array([0.0 for i in xrange(self.poi_ids)])
-            for entry in csv.reader(open(settings["PMF_POI_BIAS_FILE"])):
+            for entry in csv.reader(open(settings["FPMC_POI_BIAS_FILE"])):
                 pid, bias = int(entry[0]), float(entry[1])
                 self.poi_bias[self.poi_ids[pid]] = bias
 
@@ -313,19 +304,19 @@ def main():
     if para.bias == 'True' or para.bias == 'T':
         bias_tag = True
 
-    pmf = PMF()
-    pmf.model_init(trdata_path,
+    fpmc = FPMC()
+    fpmc.model_init(trdata_path,
                     vadata_path,
                     tedata_path,
                     poi_path,
                     grid_path,
                     para.data_num,
-                    settings["PMF_INIT_GAUSSIAN"],
+                    settings["FPMC_INIT_GAUSSIAN"],
                     bias_tag,
                     restart_tag)
-    pmf.train()
+    fpmc.train()
     #pmf.recommendation(submission_path)
-    pmf.recommendationNewPOI(submission_path)
+    fpmc.recommendationNewPOI(submission_path)
 
 if __name__ == "__main__":
     main()

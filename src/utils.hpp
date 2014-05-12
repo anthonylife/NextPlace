@@ -57,6 +57,13 @@ namespace utils{
         return (1-1.0/(1+exp(-x)));
     };
 
+    inline double utils::dot(double * factor1, double * factor2, int ndim) {
+        double result = 0.0;
+        for (int i=0; i<ndim; i++)
+            result += factor1[i]*factor2[i];
+        return result;
+    }
+
     // random number generator
     double gaussrand(double ep, double var);
     void muldimGaussrand(double ** factor, int ndim);
@@ -259,6 +266,7 @@ std::vector<Coordinate*>* utils::getNearGridsForPoi(Poi* latlng, int ndimx, int 
         near_grids.push_back(self_grid);
     return near_grids;
 }
+
 
 
 

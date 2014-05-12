@@ -163,8 +163,8 @@ public:
                 for (vector<Coordinate*>::iterator it2=near_grids->begin();
                         it2!=near_grids->end(); it2++)
                     candidate_pois->insert(candidate_pois.end(),
-                                    grids_pois[it2->x][it2->y].pois.begin(),
-                                    grids_pois[it2->x][it2->y].pois.end());
+                                    grids_pois[(*it2)->x][(*it2)->y].pois.begin(),
+                                    grids_pois[(*it2)->x][(*it2)->y].pois.end());
                 
                 neg_samples = utils::genNegSamples(candidate_pois, it-second, nsample);
                 for (vector<string>::iterator it2=neg_samples->begin();
@@ -191,18 +191,93 @@ public:
 
 
     void train() {
-        vector<TrainPair*>* tr_pairs = genTrainPairs();
-        
-        for (int i=0; i<niters; i++) {
-            random_shuffle(tr_pairs->begin(), tr_pairs->end());
-            for ()
-        }
+        double p_val=0.0, n_val=0.0, logit_loss=0.0;
+        double * tuser_factor = new double[ndim];
+        int uidx, pidx1, pidx2, finished_num;
 
-        for (vector<TrainPair*>::iterator it=tr_pairs.begin(); it!=tr_pairs.end(); it++)
-            delete it;
+        vector<TrainPair*>* tr_pairs = genTrainPairs();
+        for (int i=0; i<niters; i++) {
+            finished_num = 0;
+            random_shuffle(tr_pairs->begin(), tr_pairs->end());
+            for (vector<TrainPair*>::iterator it=tr_pairs->begin();
+                    it!=tr_pairs->end(); it++) {
+                uidx = (*it)->uidx;
+                pidx1 = (*it)->pidx1;
+                pidx2 = (*it)->pidx2;
+                if (bias_tag) {
+                    p_val = utils::dot(user_factor[uidx], poi_factor[pidx1, ndim]
+                          + poi_bias[(*it)->pidx1];
+                    n_val = utils::dot(user_factor[uidx], poi_factor[pidx2, ndim]
+                          + poi_bias[(*it)->pidx2];
+                } else {
+                    p_val = utils::dot(user_factor[uidx], poi_factor[pidx1, ndim];
+                    n_val = utils::dot(user_factor[uidx], poi_factor[pidx2, ndim];
+                }
+                logit_loss = utils::logitLoss(p_val-n_val);
+                
+                // compute user factor
+                for (int j=0; j<ndim; j++)
+                    tuser_factor[j] = user_factor[uidx][j]
+                                    + lr*(logit_loss*(poi_factor[pidx1][j]
+                                            -poi_factor[pidx2][j])
+                                            -u_reg*user_factor[uidx][j]);
+                // compute and update poi factor
+                for (int j=0; j<ndim; j++)
+                    poi_factor[pidx1][j] = poi_factor[pidx1][j]
+                                         + lr*(logit_loss*user_factor[uidx][j]
+                                             -p_reg*poi_factor[pidx1][j]);
+                for (int j=0; j<ndim; j++)
+                    poi_factor[pidx2][j] = poi_factor[pidx2][j]
+                                         + lr*(-logit_loss*user_factor[uidx][j]
+                                             -p_reg*poi_factor[pidx2][j]);
+                // compute and update poi bias if necessary
+                if (bias_tag) {
+                    poi_bias[pidx1] = poi_bias[pidx1]
+                                    + lr*(logit_loss-bp_reg*poi_bias[pidx1]);
+                    poi_bias[pidx2] = poi_bias[pidx2]
+                                    + lr*(-logit_loss-bp_reg*poi_bias[pidx2]);
+                }
+                // update user factor
+                memcpy(user_factor[uidx], tuser_factor, ndim*sizeof(double));
+                if (finished_num%100000 == 0) {
+                    printf("\rCurrent Iteration: %d, Finished Training Pair Num: %d.", finished_num);
+                    fflush();
+                }
+            }
+            printf("Current Iteration: %d, AuC is %.4f...\n", evaluation(tr_pairs));
+        }
+        save_model();
+        
+        for (vector<TrainPair*>::iterator it=tr_pairs.begin();
+            it!=tr_pairs.end(); it++)
+            delete *it;
         delete tr_pairs; 
+        delete tuser_factor;
     }
 
+    double evaluation(vector<TrainPair*>* tr_pairs) {
+        int correct_num = 0;
+        int uidx, pidx1, pidx2;
+        
+        for (vector<TrainPair*>::iterator it=tr_pairs->begin();
+                it!=tr_pairs->end(); it++) {
+            uidx = (*it)->uidx;
+            pidx1 = (*it)->pidx1;
+            pidx2 = (*it)->pidx2;
+            if (bias_tag) {
+                p_val = utils::dot(user_factor[uidx], poi_factor[pidx1, ndim]
+                      + poi_bias[(*it)->pidx1];
+                n_val = utils::dot(user_factor[uidx], poi_factor[pidx2, ndim]
+                      + poi_bias[(*it)->pidx2];
+            } else {
+                p_val = utils::dot(user_factor[uidx], poi_factor[pidx1, ndim];
+                n_val = utils::dot(user_factor[uidx], poi_factor[pidx2, ndim];
+            }
+            if (p_val > n_val)
+                correct_pair += 1;
+        }
+        return 1.0*correct_num/(tr_pairs->size());
+    }
 
     ~PMF(){
         if (!grids ) {

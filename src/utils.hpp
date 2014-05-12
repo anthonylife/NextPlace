@@ -1,4 +1,15 @@
 #pragma once
+//Copyright [2014] [Wei Zhang]
+
+//Licensed under the Apache License, Version 2.0 (the "License");
+//you may not use this file except in compliance with the License.
+//You may obtain a copy of the License at
+//http://www.apache.org/licenses/LICENSE-2.0
+//Unless required by applicable law or agreed to in writing, software
+//distributed under the License is distributed on an "AS IS" BASIS,
+//WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//See the License for the specific language governing permissions and
+//limitations under the License.
 
 #include<iostream>
 #include<algorithm>
@@ -27,6 +38,12 @@ struct COORDINATE {
     int y;
 };
 typedef struct COORDINATE Coordinate;
+
+struct RATEVAL {
+    string id;
+    double score;
+};
+typedef struct RATEVAL Rateval;
 
 
 namespace utils{
@@ -63,6 +80,12 @@ namespace utils{
             result += factor1[i]*factor2[i];
         return result;
     }
+
+    // sorting functions
+    bool lessCmp(const Rateval& r1, const Rateval& r2);
+
+    bool greaterCmp(const Rateval& r1, const Rateval& r2);
+
 
     // random number generator
     double gaussrand(double ep, double var);
@@ -268,6 +291,14 @@ std::vector<Coordinate*>* utils::getNearGridsForPoi(Poi* latlng, int ndimx, int 
 }
 
 
+bool utils::lessCmp(const Rateval& r1, const Rateval& r2) {
+    return r1.score < r2.score;
+}
+
+
+bool utils::greaterCmp(const Rateval& r1, const Rateval& r2) {
+    return r1.score > r2.score;
+}
 
 
 double utils::gaussrand(double ep, double var) {

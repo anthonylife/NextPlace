@@ -1,0 +1,10 @@
+CC = g++
+CFLAGS = -Wall -O3 -fopenmp 
+
+all: train
+
+train: run.cpp ../utils.hpp model.hpp
+	$(CC) $(CFLAGS) -o run 
+
+clean:
+	rm run

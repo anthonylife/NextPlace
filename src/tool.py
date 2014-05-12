@@ -142,8 +142,34 @@ def getMulMapId(infile):
     return user_ids, ruser_ids, poi_ids, rpoi_ids
 
 
+def getPoiCategoryInfo(infile):
+    poi_category = {}
+    category_ids = {}
+    rcategory_ids = {}
+    c_cnt = 0
+    for entry in csv.reader(open(infile)):
+        pid, cid = int(entry[0]), int(entry[4])
+        poi_category[pid] = cid
+        if cid not in category_ids:
+            category_ids[cid] = c_cnt
+            rcategory_ids[c_cnt] = cid
+            c_cnt += 1
+    return poi_category, category_ids, rcategory_ids
+
+
+def getUserSimilarity(infile, sim_topk):
+    user_simval = defaultdict(list)
+
+    for entry in csv.reader(open(infile)):
+        uid = int(entry[0])
+        for i in xrange(1, len(entry)-1, 2):
+            user_simval[uid].append([int(entry[i]), float(entry[i+1])])
+
+    return user_simval
+
+
 def rZero(k):
-    return [0.0 for i in range(k)]
+    return [0.0 for i in xrange(k)]
 
 
 def rGaussian(k):
@@ -158,6 +184,10 @@ def rGaussian(k):
 
 def logitLoss(pos_score, neg_score):
     return (1-1.0/(1+math.exp(-(pos_score-neg_score))))
+
+
+def logitLoss1(x):
+    return (1-1.0/(1+math.exp(-x)))
 
 
 def test():

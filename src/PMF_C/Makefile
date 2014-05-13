@@ -4,7 +4,7 @@ CFLAGS = -Wall -O3 -fopenmp
 all: train
 
 train: run.cpp ../utils.hpp model.hpp
-	$(CC) $(CFLAGS) -o run 
+	$(CC) $(CFLAGS) -o run  run.cpp 
 
 clean:
 	rm run

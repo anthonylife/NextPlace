@@ -21,9 +21,10 @@
 #include<stdlib.h>
 #include<math.h>
 #include<string.h>
+#include<omp.h>
 
 struct GRID {
-    std::vector<string> pois;
+    std::vector<std::string> pois;
 };
 typedef struct GRID Grid;
 
@@ -40,7 +41,7 @@ struct COORDINATE {
 typedef struct COORDINATE Coordinate;
 
 struct RATEVAL {
-    string id;
+    std::string id;
     double score;
 };
 typedef struct RATEVAL Rateval;
@@ -49,7 +50,15 @@ typedef struct RATEVAL Rateval;
 namespace utils{
     // data io
     FILE * fopen_(const char* p, const char* m);
+    
     std::ifstream* ifstream_(const char* p);
+    
+    std::ofstream* ofstream_(const char* p);
+    
+    void write_submission(std::vector<std::vector<std::string> >* recommendation_result, char* submission_path);
+
+    void fread_(double * M, size_t size, size_t count, FILE* stream);
+
 
     // loading POI related data
     Grid ** loadGridInfo(char* infile, int ndimx, int ndimy);
@@ -74,12 +83,13 @@ namespace utils{
         return (1-1.0/(1+exp(-x)));
     };
 
-    inline double utils::dot(double * factor1, double * factor2, int ndim) {
+    inline double dot(double * factor1, double * factor2, int ndim) {
         double result = 0.0;
         for (int i=0; i<ndim; i++)
             result += factor1[i]*factor2[i];
         return result;
-    }
+    };
+
 
     // sorting functions
     bool lessCmp(const Rateval& r1, const Rateval& r2);
@@ -92,7 +102,10 @@ namespace utils{
     void muldimGaussrand(double ** factor, int ndim);
     void muldimUniform(double ** factor, int ndim);
     void muldimZero(double ** factor, int ndim);
-    std::vector<std::string> genSamples(std::vector<std::string>* data, int nsample);
+    std::vector<std::string>* genNegSamples(std::vector<std::string>* data,
+        std::set<std::string>* filter_samples, int nsample);
+    std::vector<std::string>* genSamples(std::vector<std::string>* data, int nsample);
+
 
     // char array string split function
     std::vector<char *> split_str(char * in_str, char sep);
@@ -132,6 +145,48 @@ std::ifstream* utils::ifstream_(const char* p){
     return in;
 }
 
+
+std::ofstream* utils::ofstream_(const char* p){
+    std::ofstream *out = new std::ofstream(p);
+    if (!out) {
+        printf("Failed to open %s\n", p);
+        exit(1);
+    }
+    return out;
+}
+
+
+void utils::write_submission(std::vector<std::vector<std::string> >* recommendation_result,
+        char* submission_path) {
+    int idx = 0;
+    std::ofstream* out = utils::ofstream_(submission_path);
+
+    for (std::vector<std::vector<std::string> >:: iterator it=recommendation_result->begin();
+            it!=recommendation_result->end(); it++) {
+        *out << idx << "\t";
+        for (std::vector<std::string>:: iterator it1=it->begin();
+                it1!=it->end()-1; it1++) {
+            *out << *it1 << ",";
+        }
+        if (it->size() > 0)
+            *out << *(it->end()-1) << std::endl;
+        else
+            *out << std::endl;
+        idx++;
+    }
+    out->close();
+}
+
+
+void utils::fread_(double * M, size_t size, size_t count, FILE* stream) {
+    int r_size = fread(M, size, count, stream);
+    if (r_size == 0) {
+        printf("Fail to read data!\n");
+        exit(1);
+    }
+}
+
+
 void utils::getIdMapRelation(char* infile, std::map<std::string, int>* user_ids,
         std::map<int, std::string>* ruser_ids, std::map<std::string, int>* poi_ids,
         std::map<int, std::string>* rpoi_ids, int *n_users, int *n_pois) {
@@ -150,19 +205,20 @@ void utils::getIdMapRelation(char* infile, std::map<std::string, int>* user_ids,
         if ((*user_ids).find(uid) == (*user_ids).end()) {
             (*user_ids)[uid] = *n_users;
             (*ruser_ids)[*n_users] = uid;
-            *n_users++;
+            (*n_users)++;
         }
         if ((*poi_ids).find(pid1) == (*poi_ids).end()) {
             (*poi_ids)[pid1] = *n_pois;
             (*rpoi_ids)[*n_pois] = pid1;
-            *n_pois++;
+            (*n_pois)++;
         }
         if ((*poi_ids).find(pid2) == (*poi_ids).end()) {
             (*poi_ids)[pid2] = *n_pois;
             (*rpoi_ids)[*n_pois] = pid2;
-            *n_pois++;
+            (*n_pois)++;
         }
     }
+    in->close();
 }
 
 
@@ -182,11 +238,11 @@ Grid ** utils::loadGridInfo(char* infile, int ndimx, int ndimy)
         parts = utils::split_str(line, ',');
         xidx = atoi(parts[0].c_str());
         yidx = atoi(parts[1].c_str());
-        for (int i=2; i<parts.size(); i++)
+        for (unsigned int i=2; i<parts.size(); i++)
             //grids[xidx][yidx].pois.push_back(atoi(parts[i].c_str()));
             grids[xidx][yidx].pois.push_back(parts[i]);
     }
-    
+    in->close();
     return grids;
 }
 
@@ -219,6 +275,7 @@ std::map<std::string, Poi*>* utils::loadPoiInfo(const std::map<std::string, int>
         poi->lng = lng;
         (*pois_latlng)[pid] = poi;
     }
+    in->close();
     return pois_latlng;
 }
 
@@ -259,22 +316,22 @@ std::vector<Coordinate*>* utils::getNearGridsForGrid(Coordinate grididx, int ndi
         printf("Invalid grididx!\n");
         exit(1);
     }
-    coordinate = utils::checkBoundary(grididx.x-1, griddix.y+1, ndimx, ndimy);
-    near_grids.push_back(coordinate);
-    coordinate = utils::checkBoundary(grididx.x, griddix.y+1, ndimx, ndimy);
-    near_grids.push_back(coordinate);
-    coordinate = utils::checkBoundary(grididx.x+1, griddix.y+1, ndimx, ndimy);
-    near_grids.push_back(coordinate);
-    coordinate = utils::checkBoundary(grididx.x-1, griddix.y, ndimx, ndimy);
-    near_grids.push_back(coordinate);
-    coordinate = utils::checkBoundary(grididx.x+1, griddix.y, ndimx, ndimy);
-    near_grids.push_back(coordinate);
-    coordinate = utils::checkBoundary(grididx.x-1, griddix.y-1, ndimx, ndimy);
-    near_grids.push_back(coordinate);
-    coordinate = utils::checkBoundary(grididx.x, griddix.y-1, ndimx, ndimy);
-    near_grids.push_back(coordinate);
-    coordinate = utils::checkBoundary(grididx.x+1, griddix.y-1, ndimx, ndimy);
-    near_grids.push_back(coordinate);
+    coordinate = utils::checkBoundary(grididx.x-1, grididx.y+1, ndimx, ndimy);
+    near_grids->push_back(coordinate);
+    coordinate = utils::checkBoundary(grididx.x, grididx.y+1, ndimx, ndimy);
+    near_grids->push_back(coordinate);
+    coordinate = utils::checkBoundary(grididx.x+1, grididx.y+1, ndimx, ndimy);
+    near_grids->push_back(coordinate);
+    coordinate = utils::checkBoundary(grididx.x-1, grididx.y, ndimx, ndimy);
+    near_grids->push_back(coordinate);
+    coordinate = utils::checkBoundary(grididx.x+1, grididx.y, ndimx, ndimy);
+    near_grids->push_back(coordinate);
+    coordinate = utils::checkBoundary(grididx.x-1, grididx.y-1, ndimx, ndimy);
+    near_grids->push_back(coordinate);
+    coordinate = utils::checkBoundary(grididx.x, grididx.y-1, ndimx, ndimy);
+    near_grids->push_back(coordinate);
+    coordinate = utils::checkBoundary(grididx.x+1, grididx.y-1, ndimx, ndimy);
+    near_grids->push_back(coordinate);
     return near_grids;
 }
 
@@ -285,8 +342,9 @@ std::vector<Coordinate*>* utils::getNearGridsForPoi(Poi* latlng, int ndimx, int 
     Coordinate grididx = utils::getGridIdxForPoi(latlng, ndimx, ndimy, grain_lng, grain_lat);
     near_grids = utils::getNearGridsForGrid(grididx, ndimx, ndimy);
     if (tag)
-        Coordinate* self_grid = &grididx;
-        near_grids.push_back(self_grid);
+        near_grids->push_back((Coordinate*)&grididx);
+        //Coordinate* self_grid = &grididx;
+        //near_grids.push_back(self_grid);
     return near_grids;
 }
 
@@ -302,7 +360,7 @@ bool utils::greaterCmp(const Rateval& r1, const Rateval& r2) {
 
 
 double utils::gaussrand(double ep, double var) {
-    double V1, V2, S;
+    double V1 = 0.0, V2=0.0, S=0.0;
     int phase = 0;
     double X;
                      
@@ -347,9 +405,10 @@ void utils::muldimZero(double ** factor, int ndim) {
 }
 
 
-std::vector<std::string>* genNegSamples(std::vector<std::string>* data, std::set<std::string>* filter_samples, int nsample) {
+std::vector<std::string>* utils::genNegSamples(std::vector<std::string>* data,
+        std::set<std::string>* filter_samples, int nsample) {
     std::vector<std::string>* neg_samples = NULL;
-    vector<std::string>::iterator it = NULL;
+    std::vector<std::string>::iterator it;
   
     it = data->begin();
     while(it != data->end()) {
@@ -358,7 +417,7 @@ std::vector<std::string>* genNegSamples(std::vector<std::string>* data, std::set
         else
             it++;
     }
-    neg_samples = tmp_samples = utils::genSamples(data, tmp_nsample);
+    neg_samples = utils::genSamples(data, nsample);
     return neg_samples;
 }
 
@@ -370,11 +429,11 @@ std::vector<std::string>* utils::genSamples(std::vector<std::string>* data, int 
     
     sampled_num = 0;
     while (sampled_num < nsample) {
-        if (data.size() == 0)
+        if (data->size() == 0)
             break;
-        sample_id = rand()%data.size();
-        samples.push_back(data[sample_id]);
-        data.erase(data.begin()+sample_id);
+        sample_id = rand()%data->size();
+        samples->push_back((*data)[sample_id]);
+        data->erase(data->begin()+sample_id);
         sampled_num++;
     }
     return samples;

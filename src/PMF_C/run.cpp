@@ -19,18 +19,18 @@
 
 using namespace std;
 
-const string DATA_ROOT_PATH = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/data/";
-const string[3] TRAIN_SUFFIX = {"Brightkite_Train_Checkinpair.csv",
+string DATA_ROOT_PATH = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/data/";
+string TRAIN_SUFFIX[3] = {"Brightkite_Train_Checkinpair.csv",
     "Gowalla1_Train_Checkinpair.csv", "Gowalla2_Train_Checkinpair.csv"};
-const string[3] VALI_SUFFIX = {"Brightkite_Vali_Checkinpair.csv", 
+string VALI_SUFFIX[3] = {"Brightkite_Vali_Checkinpair.csv", 
     "Gowalla1_Vali_Checkinpair.csv", "Gowalla2_Vali_Checkinpair.csv"};
-//const string[3] TEST_SUFFIX = {"Brightkite_Test_Checkinpair.csv", 
+//string TEST_SUFFIX[3] = {"Brightkite_Test_Checkinpair.csv", 
 //    "Gowalla1_Test_Checkinpair.csv", "Gowalla2_Test_Checkinpair.csv"};
-const string[3] TEST_SUFFIX = {"Brightkite_Filter_Test_Checkinpair.csv",
+string TEST_SUFFIX[3] = {"Brightkite_Filter_Test_Checkinpair.csv",
     "Gowalla1_Filter_Test_Checkinpair.csv","Gowalla2_Filter_Test_Checkinpair.csv"};
-const string[3] POI_SUFFIX = {"Brightkite_totalCheckins.txt", 
+string POI_SUFFIX[3] = {"Brightkite_totalCheckins.txt", 
     "Gowalla_totalCheckins.txt", "Gowalla_places.csv"};
-const string[3] GRID_SUFFIX = {"Brightkite_Grid_Place.csv",
+string GRID_SUFFIX[3] = {"Brightkite_Grid_Place.csv",
     "Gowalla1_Grid_Place.csv", "Gowalla2_Grid_Place.csv"};
 
 
@@ -49,8 +49,8 @@ int ArgPos(char *str, int argc, char **argv) {
 
 int main(int argc, char **argv) {
     int i;
-    int a;
-    char* b, c;
+    int a=0;
+    char *b=NULL, *c=NULL;
     if (argc == 1) {
         printf("PMF v 0.1a\n");
         printf("\tExamples:\n");
@@ -58,23 +58,23 @@ int main(int argc, char **argv) {
         return 0;
     }
     if ((i = ArgPos((char *)"-d", argc, argv)) > 0) a = atoi(argv[i + 1]);
-    if ((i = ArgPos((char *)"-r", argc, argv)) > 0) b = atoi(argv[i + 1]);
-    if ((i = ArgPos((char *)"-b", argc, argv)) > 0) c = atoi(argv[i + 1]);
-    if (a!=0 || a!=1 || a!=2) {
+    if ((i = ArgPos((char *)"-r", argc, argv)) > 0) b = argv[i + 1];
+    if ((i = ArgPos((char *)"-b", argc, argv)) > 0) c = argv[i + 1];
+    if (a!=0 && a!=1 && a!=2) {
         printf("Invalid choice of dataset!\n");
         exit(1);
     }
     
-    const string submission_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/results/PMF_result.dat";
-    const string user_factor_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/src/PMF_C/user_factor.model";
-    const string poi_factor_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/src/PMF_C/poi_factor.model";
-    const string poi_bias_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/src/PMF_C/poi_bias.model";
+    string submission_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/results/PMF_result.dat";
+    string user_factor_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/src/PMF_C/user_factor.model";
+    string poi_factor_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/src/PMF_C/poi_factor.model";
+    string poi_bias_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/src/PMF_C/poi_bias.model";
     string trdata_path = DATA_ROOT_PATH + TRAIN_SUFFIX[a];
     string vadata_path = DATA_ROOT_PATH + VALI_SUFFIX[a];
     string tedata_path = DATA_ROOT_PATH + TEST_SUFFIX[a];
     string poi_path = DATA_ROOT_PATH + POI_SUFFIX[a];
     string grid_path = DATA_ROOT_PATH + GRID_SUFFIX[a];
-    const int re_topk = 10;
+    int re_topk = 10;
     int data_num = a;
     bool restart_tag, bias_tag;
     
@@ -95,21 +95,21 @@ int main(int argc, char **argv) {
         exit(1);
     }
    
-    PMF *pmf = new PMF(trdata_path.c_str(),
-                       vadata_path.c_str(),
-                       tedata_path.c_str(),
-                       user_factor_path.c_str(),
-                       poi_factor_path.c_str(),
-                       poi_bias_path.c_str(),
-                       poi_path.c_str(),
-                       grid_path.c_str(),
+    PMF *pmf = new PMF((char *)trdata_path.c_str(),
+                       (char *)vadata_path.c_str(),
+                       (char *)tedata_path.c_str(),
+                       (char *)user_factor_path.c_str(),
+                       (char *)poi_factor_path.c_str(),
+                       (char *)poi_bias_path.c_str(),
+                       (char *)poi_path.c_str(),
+                       (char *)grid_path.c_str(),
                        data_num,
                        bias_tag,
                        restart_tag,
                        re_topk);
     if (restart_tag)
         pmf->train();
-    pmf->recommendationNewPOI(submission_path.c_str());
+    pmf->recommendationNewPOI((char *)submission_path.c_str());
 
     return 0;
 }

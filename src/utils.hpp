@@ -17,11 +17,14 @@
 #include<vector>
 #include<map>
 #include<set>
+#include<ext/hash_set>
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
 #include<string.h>
 #include<omp.h>
+
+//using namespace __gnu_cxx;
 
 struct GRID {
     std::vector<std::string> pois;
@@ -48,19 +51,7 @@ typedef struct RATEVAL Rateval;
 
 
 namespace utils{
-    // data io
-    FILE * fopen_(const char* p, const char* m);
-    
-    std::ifstream* ifstream_(const char* p);
-    
-    std::ofstream* ofstream_(const char* p);
-    
-    void write_submission(std::vector<std::vector<std::string> >* recommendation_result, char* submission_path);
-
-    void fread_(double * M, size_t size, size_t count, FILE* stream);
-
-
-    // loading POI related data
+    // Task-specific functions. (e.g. loading poi info function)
     Grid ** loadGridInfo(char* infile, int ndimx, int ndimy);
 
     std::map<std::string, Poi*>* loadPoiInfo(const std::map<std::string, int>* poi_ids, char* poi_path, int data_num);
@@ -78,11 +69,19 @@ namespace utils{
     std::vector<Coordinate*>* getNearGridsForPoi(Poi* latlng, int ndimx, int ndimy, double grain_lng, double grain_lat, bool tag);
 
     
+    // data io
+    FILE * fopen_(const char* p, const char* m);
+    void fread_(double * M, size_t size, size_t count, FILE* stream);
+    std::ifstream* ifstream_(const char* p);
+    std::ofstream* ofstream_(const char* p);
+    
+    void write_submission(std::vector<std::vector<std::string> >* recommendation_result, char* submission_path);
+   
+
     // mathematical functions
     inline double logitLoss(double x) {
         return (1-1.0/(1+exp(-x)));
     };
-
     inline double dot(double * factor1, double * factor2, int ndim) {
         double result = 0.0;
         for (int i=0; i<ndim; i++)
@@ -93,7 +92,6 @@ namespace utils{
 
     // sorting functions
     bool lessCmp(const Rateval& r1, const Rateval& r2);
-
     bool greaterCmp(const Rateval& r1, const Rateval& r2);
 
 
@@ -102,6 +100,9 @@ namespace utils{
     void muldimGaussrand(double ** factor, int ndim);
     void muldimUniform(double ** factor, int ndim);
     void muldimZero(double ** factor, int ndim);
+    void muldimGaussrand(double * factor, int ndim);
+    void muldimUniform(double * factor, int ndim);
+    void muldimZero(double * factor, int ndim);
     std::vector<std::string>* genNegSamples(std::vector<std::string>* data,
         std::set<std::string>* filter_samples, int nsample);
     std::vector<std::string>* genSamples(std::vector<std::string>* data, int nsample);
@@ -389,19 +390,35 @@ void utils::muldimGaussrand(double ** factor, int ndim) {
 }
 
 
+void utils::muldimGaussrand(double * factor, int ndim) {
+    for (int i=0; i<ndim; i++)
+        factor[i] = utils::gaussrand(0.0, 0.1);
+}
+
+
 void utils::muldimUniform(double ** factor, int ndim) {
     *factor = new double[ndim];
-    for (int i=0; i<ndim; i++) {
+    for (int i=0; i<ndim; i++)
         (*factor)[i] = 2*float(rand())/RAND_MAX-1;
-    }
+}
+
+
+void utils::muldimUniform(double * factor, int ndim) {
+    for (int i=0; i<ndim; i++)
+        factor[i] = 2*float(rand())/RAND_MAX-1;
 }
 
 
 void utils::muldimZero(double ** factor, int ndim) {
     *factor = new double[ndim];
-    for (int i=0; i<ndim; i++) {
+    for (int i=0; i<ndim; i++)
         (*factor)[i] = 0.0;
-    }
+}
+
+
+void utils::muldimZero(double * factor, int ndim) {
+    for (int i=0; i<ndim; i++)
+        factor[i] = 0.0;
 }
 
 

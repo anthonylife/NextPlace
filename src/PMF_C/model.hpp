@@ -21,6 +21,7 @@
 #include "../utils.hpp"
 
 using namespace std;
+using namespace __gnu_cxx;
 
 struct TRAIN_PAIR{
     int uidx;
@@ -60,6 +61,7 @@ class PMF{
 
     int n_users;
     int n_pois;
+    double * total_factor;
     double ** user_factor;
     double ** poi_factor;
     double * poi_bias;
@@ -100,6 +102,7 @@ public:
 
         n_users = 0;
         n_pois = 0;
+        total_factor = NULL;
         user_factor = NULL;
         poi_factor = NULL;
         poi_bias = NULL;
@@ -133,14 +136,18 @@ public:
         printf("Loading ID MAP relation.\n");
         utils::getIdMapRelation(trdata_path, &user_ids, &ruser_ids, &poi_ids, &rpoi_ids, &n_users, &n_pois);       
         printf("User: %ld, Poi: %ld\n", user_ids.size(), poi_ids.size());
+        printf("Loading Grids info.\n");
         grids_pois = utils::loadGridInfo(grid_path, ndimx, ndimy);
+        printf("Loading POI info.\n");
         pois_latlng = utils::loadPoiInfo(&poi_ids, poi_path, data_num);
 
+        printf("Creating factor.\n");
         if (restart_tag == true) {
             factorInit();
         } else {
             loadModel();
         }
+        printf("Finishing initing.\n");
     }
     
     ~PMF() {
@@ -158,6 +165,13 @@ public:
             }
             delete pois_latlng;
         }
+
+        if (total_factor)
+            delete[] total_factor;
+        if (user_factor)
+            delete[] user_factor;
+        if (poi_factor)
+            delete[] poi_factor;
 
         user_ids.clear();
         map<string, int>(user_ids).swap(user_ids);
@@ -177,29 +191,34 @@ public:
         else
             num_para = (n_users+n_pois)*ndim;
         
-        double * factor = new double[num_para];
+        total_factor = new double[num_para];
         int ind = 0;
+        printf("haha1\n");
+        user_factor = new double*[n_users];
         for (int u=0; u<n_users; u++) {
-            user_factor[u] = factor+ind;
-            utils::muldimGaussrand(&user_factor[u], ndim);
-            //utils::muldimUniform(&user_factor[u], ndim);
-            //uitls::muldimZero(&user_factor[u], ndim);
+            user_factor[u] = total_factor+ind;
+            utils::muldimGaussrand(user_factor[u], ndim);
+            //utils::muldimUniform(user_factor[u], ndim);
+            //uitls::muldimZero(user_factor[u], ndim);
             ind += ndim;
         }
+        printf("haha2\n");
+        poi_factor = new double*[n_pois];
         for (int p=0; p<n_pois; p++) {
-            poi_factor[p] = factor+ind;
-            utils::muldimGaussrand(&poi_factor[p], ndim);
-            //utils::muldimUniform(&poi_factor[p], ndim);
-            //uitls::muldimZero(&poi_factor[p], ndim);
+            poi_factor[p] = total_factor+ind;
+            utils::muldimGaussrand(poi_factor[p], ndim);
+            //utils::muldimUniform(poi_factor[p], ndim);
+            //uitls::muldimZero(poi_factor[p], ndim);
             ind += ndim;
         }
         if (bias_tag) {
-            poi_bias = factor+ind;
-            utils::muldimGaussrand(&poi_bias, n_pois);
-            //utils::muldimUniform(&poi_bias, n_pois);
-            //uitls::muldimZero(&poi_bias, n_pois);
+            poi_bias = total_factor+ind;
+            utils::muldimGaussrand(poi_bias, n_pois);
+            //utils::muldimUniform(poi_bias, n_pois);
+            //uitls::muldimZero(poi_bias, n_pois);
             ind += n_pois;
         }
+        printf("haha3\n");
     }
 
     vector<TrainPair*>* genTrainPairs() {

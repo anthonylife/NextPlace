@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -Wall -O3 -fopenmp 
+CFLAGS = -Wall -O3 -fopenmp -Wcpp 
 
 all: train
 

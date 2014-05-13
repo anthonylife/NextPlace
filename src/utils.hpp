@@ -22,9 +22,23 @@
 #include<stdlib.h>
 #include<math.h>
 #include<string.h>
+#include<sys/time.h>
 #include<omp.h>
 
-//using namespace __gnu_cxx;
+using namespace __gnu_cxx;
+namespace __gnu_cxx
+{
+    template<> struct hash<const std::string> {
+        size_t operator()(const std::string& s) const { 
+            return hash<const char*>()( s.c_str() );
+        } //
+    };
+    template<> struct hash<std::string> {
+        size_t operator()(const std::string& s) const { 
+            return hash<const char*>()( s.c_str() );
+        }
+    };
+}
 
 struct GRID {
     std::vector<std::string> pois;
@@ -78,6 +92,11 @@ namespace utils{
     void write_submission(std::vector<std::vector<std::string> >* recommendation_result, char* submission_path);
    
 
+    // time measurement
+    void tic(timeval &start_t);
+    void toc(timeval &start_t, timeval &end_t);
+
+
     // mathematical functions
     inline double logitLoss(double x) {
         return (1-1.0/(1+exp(-x)));
@@ -103,9 +122,9 @@ namespace utils{
     void muldimGaussrand(double * factor, int ndim);
     void muldimUniform(double * factor, int ndim);
     void muldimZero(double * factor, int ndim);
-    std::vector<std::string>* genNegSamples(std::vector<std::string>* data,
-        std::set<std::string>* filter_samples, int nsample);
+    std::vector<std::string>* genNegSamples(std::vector<std::string>* data, std::set<std::string>* filter_samples, int nsample);
     std::vector<std::string>* genSamples(std::vector<std::string>* data, int nsample);
+    std::vector<std::string>* genSamples(std::vector<std::string>* data, hash_set<std::string>* filter_samples, int nsample);
 
 
     // char array string split function
@@ -176,6 +195,18 @@ void utils::write_submission(std::vector<std::vector<std::string> >* recommendat
         idx++;
     }
     out->close();
+}
+
+
+void utils::tic(timeval &start_t) {
+    gettimeofday(&start_t, 0);
+}
+
+
+void utils::toc(timeval &start_t, timeval &end_t){
+    gettimeofday(&end_t, 0);
+    double timeuse = 1000000*(end_t.tv_sec-start_t.tv_sec)+end_t.tv_usec-start_t.tv_usec;
+    printf("Time cost: %f(us)!\n", timeuse);
 }
 
 
@@ -428,31 +459,57 @@ std::vector<std::string>* utils::genNegSamples(std::vector<std::string>* data,
     std::vector<std::string>::iterator it;
   
     it = data->begin();
-    while(it != data->end()) {
+    /*while(it != data->end()) {
         if (filter_samples->find(*it) != filter_samples->end())
             it = data->erase(it);
         else
             it++;
-    }
+    }*/
     neg_samples = utils::genSamples(data, nsample);
     return neg_samples;
 }
 
 
+std::vector<std::string>* utils::genSamples(std::vector<std::string>* data,
+        hash_set<std::string>* filter_samples, int nsample) {
+    int sampled_num=0;
+    std::vector<std::string>* samples = new std::vector<std::string>();
+
+    std::random_shuffle(data->begin(), data->end());
+    for (std::vector<std::string>::iterator it = data->begin(); it!=data->end(); it++) {
+        if (filter_samples->find(*it) == filter_samples->end()) {
+            samples->push_back(*it);
+            sampled_num++;
+            if (sampled_num == nsample)
+                break;
+        }
+    }
+    return samples;
+}
+
+
 std::vector<std::string>* utils::genSamples(std::vector<std::string>* data, int nsample) {
     int sampled_num;
-    int sample_id;
+    //int sample_id;
     std::vector<std::string>* samples = new std::vector<std::string>();
     
     sampled_num = 0;
-    while (sampled_num < nsample) {
+    /*while (sampled_num < nsample) {
         if (data->size() == 0)
             break;
         sample_id = rand()%data->size();
         samples->push_back((*data)[sample_id]);
         data->erase(data->begin()+sample_id);
         sampled_num++;
+    }*/
+    std::random_shuffle(data->begin(), data->end());
+    for (std::vector<std::string>::iterator it = data->begin(); it!=data->end(); it++) {
+        samples->push_back(*it);
+        sampled_num++;
+        if (sampled_num == nsample)
+            break;
     }
+        
     return samples;
 }
 

@@ -226,16 +226,16 @@ public:
         string uid, pid1, pid2;
         vector<string> parts;
         vector<TrainPair*>* tr_pairs = new vector<TrainPair*>();
-        map<string, set<string>*>* user_visit = new map<string, set<string>*>();
+        map<string, hash_set<string>*>* user_visit = new map<string, hash_set<string>*>();
         vector<Coordinate*>* near_grids = NULL;
         vector<string>* candidate_pois = NULL;
         vector<string>* neg_samples = NULL;
-        set<string>* tmp_set = NULL;
+        hash_set<string>* tmp_set = NULL;
 
         printf("Generating training pairs.\n");
         for (map<string, int>::iterator it=user_ids.begin();
                 it!=user_ids.end(); it++) {
-            tmp_set = new set<string>();
+            tmp_set = new hash_set<string>();
             (*user_visit)[it->first] = tmp_set;
         }
 
@@ -253,23 +253,47 @@ public:
             }
         }
         
-        int finished_num = 0;
+        /*int sum_num = 0;
         for (map<string, set<string>*>::iterator it=user_visit->begin();
                 it!=user_visit->end(); it++) {
+            sum_num += it->second->size();
+        }
+        printf("Total number: %d\n", sum_num);
+        utils::pause();*/
+        
+        int finished_num = 0;
+        timeval t1, t2;
+        for (map<string, hash_set<string>*>::iterator it=user_visit->begin();
+                it!=user_visit->end(); it++) {
             uid = it->first;
-            for (set<string>::iterator it1=it->second->begin();
+            for (hash_set<string>::iterator it1=it->second->begin();
                     it1!=it->second->end(); it1++) {
                 pid1 = *it1;
                 candidate_pois = new vector<string>();
+                printf("1");
+                utils::tic(t1);
                 near_grids = utils::getNearGridsForPoi((*pois_latlng)[pid1],
                                 ndimx, ndimy, grain_lng, grain_lat, true);
+                utils::toc(t1, t2);
+                utils::pause();
+                printf("2");
+                utils::tic(t1);
                 for (vector<Coordinate*>::iterator it2=near_grids->begin();
                         it2!=near_grids->end(); it2++)
                     candidate_pois->insert(candidate_pois->end(),
                                     grids_pois[(*it2)->x][(*it2)->y].pois.begin(),
                                     grids_pois[(*it2)->x][(*it2)->y].pois.end());
                 
-                neg_samples = utils::genNegSamples(candidate_pois, it->second, nsample);
+                utils::toc(t1, t2);
+                utils::pause();
+                printf("3");
+                utils::tic(t1);
+                //neg_samples = utils::genNegSamples(candidate_pois, it->second, nsample);
+                neg_samples = utils::genSamples(candidate_pois, it->second, nsample);
+                utils::toc(t1, t2);
+                utils::pause();
+                printf("4");
+                utils::tic(t1);
                 for (vector<string>::iterator it2=neg_samples->begin();
                         it2!=neg_samples->end(); it2++) {
                     pid2 = *it2;
@@ -278,9 +302,11 @@ public:
                     pair->pidx1 = poi_ids[pid1];
                     pair->pidx2 = poi_ids[pid2];
                     tr_pairs->push_back(pair);
-                    printf("\r%d", finished_num);
+                    //printf("\r%d", finished_num);
                     finished_num++;
                 }
+                utils::toc(t1, t2);
+                utils::pause();
                 delete candidate_pois;
                 delete neg_samples;
                 delete near_grids;
@@ -288,7 +314,7 @@ public:
         }
 
         if (user_visit != NULL) {
-            for (map<string, set<string>*>::iterator it=user_visit->begin();
+            for (map<string, hash_set<string>*>::iterator it=user_visit->begin();
                     it!=user_visit->end(); it++)
                 delete it->second;
             delete user_visit;
@@ -481,15 +507,15 @@ public:
         vector<Rateval>* inter_result = NULL;
         ifstream* in = NULL;
         Rateval* rateval = NULL; 
-        set<string>* tmp_set = NULL;
-        map<string, set<string>*>* user_visit = NULL;
+        hash_set<string>* tmp_set = NULL;
+        map<string, hash_set<string>*>* user_visit = NULL;
         vector<vector<string> >* recommendation_result = NULL;
 
         printf("\nStart recommendation!\n");
-        user_visit = new map<string, set<string>*>();
+        user_visit = new map<string, hash_set<string>*>();
         for (map<string, int>::iterator it=user_ids.begin();
                 it!=user_ids.end(); it++) {
-            tmp_set = new set<string>();
+            tmp_set = new hash_set<string>();
             (*user_visit)[it->first] = tmp_set;
         }
         in = utils::ifstream_(trdata_path);
@@ -560,7 +586,7 @@ public:
         
         // release memory
         if (user_visit != NULL) {
-            for (map<string, set<string>*>::iterator it=user_visit->begin();
+            for (map<string, hash_set<string>*>::iterator it=user_visit->begin();
                     it!=user_visit->end(); it++)
                 delete it->second;
             delete user_visit;

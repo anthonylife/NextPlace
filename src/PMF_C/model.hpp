@@ -78,8 +78,8 @@ class PMF{
 public:
     void paraInit(){
         // Method control variable 
-        niters = 25;
-        nsample = 5; 
+        niters = 1;
+        nsample = 1; 
     
         // Hyper-parameter setting 
         ndim = 10; 
@@ -156,22 +156,22 @@ public:
                 delete[] grids_pois[i];
             delete[] grids_pois;
         }
-
+        printf("haha2\n");
         if (!pois_latlng) {
             for (map<string, Poi*>::iterator it = pois_latlng->begin();
                     it != pois_latlng->end(); it++) {
                 delete it->second;
-                it->second = NULL;
             }
             delete pois_latlng;
         }
-
+        printf("haha3\n");
         if (total_factor)
             delete[] total_factor;
         if (user_factor)
             delete[] user_factor;
         if (poi_factor)
             delete[] poi_factor;
+        printf("haha4\n");
 
         user_ids.clear();
         map<string, int>(user_ids).swap(user_ids);
@@ -181,6 +181,7 @@ public:
         map<string, int>(poi_ids).swap(poi_ids);
         rpoi_ids.clear();
         map<int, string>(rpoi_ids).swap(rpoi_ids);
+        printf("haha5\n");
     }
 
 
@@ -193,7 +194,6 @@ public:
         
         total_factor = new double[num_para];
         int ind = 0;
-        printf("haha1\n");
         user_factor = new double*[n_users];
         for (int u=0; u<n_users; u++) {
             user_factor[u] = total_factor+ind;
@@ -202,7 +202,7 @@ public:
             //uitls::muldimZero(user_factor[u], ndim);
             ind += ndim;
         }
-        printf("haha2\n");
+        
         poi_factor = new double*[n_pois];
         for (int p=0; p<n_pois; p++) {
             poi_factor[p] = total_factor+ind;
@@ -218,7 +218,6 @@ public:
             //uitls::muldimZero(poi_bias, n_pois);
             ind += n_pois;
         }
-        printf("haha3\n");
     }
 
     vector<TrainPair*>* genTrainPairs() {
@@ -262,7 +261,7 @@ public:
         utils::pause();*/
         
         int finished_num = 0;
-        timeval t1, t2;
+        //timeval t1, t2;
         for (map<string, hash_set<string>*>::iterator it=user_visit->begin();
                 it!=user_visit->end(); it++) {
             uid = it->first;
@@ -270,30 +269,30 @@ public:
                     it1!=it->second->end(); it1++) {
                 pid1 = *it1;
                 candidate_pois = new vector<string>();
-                printf("1");
-                utils::tic(t1);
+                //printf("1");
+                //utils::tic(t1);
                 near_grids = utils::getNearGridsForPoi((*pois_latlng)[pid1],
                                 ndimx, ndimy, grain_lng, grain_lat, true);
-                utils::toc(t1, t2);
-                utils::pause();
-                printf("2");
-                utils::tic(t1);
+                //utils::toc(t1, t2);
+                //utils::pause();
+                //printf("2");
+                //utils::tic(t1);
                 for (vector<Coordinate*>::iterator it2=near_grids->begin();
                         it2!=near_grids->end(); it2++)
                     candidate_pois->insert(candidate_pois->end(),
                                     grids_pois[(*it2)->x][(*it2)->y].pois.begin(),
                                     grids_pois[(*it2)->x][(*it2)->y].pois.end());
                 
-                utils::toc(t1, t2);
-                utils::pause();
-                printf("3");
-                utils::tic(t1);
+                //utils::toc(t1, t2);
+                //utils::pause();
+                //printf("3");
+                //utils::tic(t1);
                 //neg_samples = utils::genNegSamples(candidate_pois, it->second, nsample);
                 neg_samples = utils::genSamples(candidate_pois, it->second, nsample);
-                utils::toc(t1, t2);
-                utils::pause();
-                printf("4");
-                utils::tic(t1);
+                //utils::toc(t1, t2);
+                //utils::pause();
+                //printf("4");
+                //utils::tic(t1);
                 for (vector<string>::iterator it2=neg_samples->begin();
                         it2!=neg_samples->end(); it2++) {
                     pid2 = *it2;
@@ -302,11 +301,11 @@ public:
                     pair->pidx1 = poi_ids[pid1];
                     pair->pidx2 = poi_ids[pid2];
                     tr_pairs->push_back(pair);
-                    //printf("\r%d", finished_num);
+                    printf("\rGenerate training pairs: %d", finished_num);
                     finished_num++;
                 }
-                utils::toc(t1, t2);
-                utils::pause();
+                //utils::toc(t1, t2);
+                //utils::pause();
                 delete candidate_pois;
                 delete neg_samples;
                 delete near_grids;
@@ -383,7 +382,7 @@ public:
                     fflush(stdout);
                 }
             }
-            printf("Current Iteration: %d, AuC is %.4f...\n", i, evaluation(tr_pairs));
+            printf("Current Iteration: %d, AUC is %.6f...\n", i, evaluation(tr_pairs));
         }
         saveModel();
         
@@ -423,7 +422,7 @@ public:
     }
 
     void recommendation(char* submission_path) {
-        int re_num;
+        int re_num = 0, finished_num = 0;
         double score;
         string uid, pid1, c_pid, line;
         vector<string> parts;
@@ -462,6 +461,7 @@ public:
                 rateval->id = c_pid;
                 rateval->score = score;
                 inter_result->push_back(*rateval);
+                delete rateval;
             }
             re_num = 0;
             sort(inter_result->begin(), inter_result->end(), utils::greaterCmp);
@@ -474,11 +474,10 @@ public:
                     break;
             }
             recommendation_result->push_back(*onere_result);
+            printf("\rFinished Recommendation Pairs: %d", finished_num);
+            finished_num++;
 
             // release memory
-            for (vector<Rateval>::iterator it=inter_result->begin();
-                    it!=inter_result->end(); it++)
-                delete (Rateval*)&(*it);
             delete inter_result;
             delete candidate_pois;
             delete near_grids;
@@ -487,16 +486,16 @@ public:
         utils::write_submission(recommendation_result, submission_path);
         
         // release memory
-        for (vector<vector<string> >::iterator it=recommendation_result->begin();
-                it!=recommendation_result->end(); it++) {
-            it->clear();
-            vector<string>(*it).swap(*it);
-        }
+        //for (vector<vector<string> >::iterator it=recommendation_result->begin();
+        //        it!=recommendation_result->end(); it++) {
+        //    it->clear();
+        //    vector<string>(*it).swap(*it);
+        //}
         delete recommendation_result;
     }
 
     void recommendationNewPOI(char* submission_path) {
-        int re_num;
+        int re_num = 0, finished_num = 0;
         double score;
         string uid, pid1, pid2, c_pid, line;
         vector<string> parts;
@@ -518,6 +517,7 @@ public:
             tmp_set = new hash_set<string>();
             (*user_visit)[it->first] = tmp_set;
         }
+        
         in = utils::ifstream_(trdata_path);
         while (getline(*in, line)) {
             parts = utils::split_str(line, ',');
@@ -531,7 +531,7 @@ public:
                 (*user_visit)[uid]->insert(pid2);
             }
         }
-
+        
         recommendation_result = new vector<vector<string> >();
         in = utils::ifstream_(tedata_path);
         while (getline(*in, line)) {
@@ -560,6 +560,7 @@ public:
                 rateval->id = c_pid;
                 rateval->score = score;
                 inter_result->push_back(*rateval);
+                delete rateval;
             }
             re_num = 0;
             sort(inter_result->begin(), inter_result->end(), utils::greaterCmp);
@@ -572,16 +573,16 @@ public:
                     break;
             }
             recommendation_result->push_back(*onere_result);
+            printf("\rFinished Recommendation Pairs: %d", finished_num);
+            finished_num++;
 
             // release memory
-            for (vector<Rateval>::iterator it=inter_result->begin();
-                    it!=inter_result->end(); it++)
-                delete (Rateval*)&(*it);
             delete inter_result;
             delete candidate_pois;
             delete near_grids;
             delete neg_samples;
         }
+        printf("\nRecommendation Finished!\n");
         utils::write_submission(recommendation_result, submission_path);
         
         // release memory
@@ -591,13 +592,13 @@ public:
                 delete it->second;
             delete user_visit;
         }
-        for (vector<vector<string> >::iterator it=recommendation_result->begin();
-                it!=recommendation_result->end(); it++) {
-            it->clear();
-            vector<string>(*it).swap(*it);
-        }
+        //for (vector<vector<string> >::iterator it=recommendation_result->begin();
+        //        it!=recommendation_result->end(); it++) {
+        //    it->clear();
+        //    vector<string>(*it).swap(*it);
+        //}
         delete recommendation_result;
-    
+        printf("haha1\n");
     }
 
     void saveModel() {

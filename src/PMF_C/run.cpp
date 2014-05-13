@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
         exit(1);
     }
     
-    string submission_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/results/PMF_result.dat";
+    string submission_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/results/PMF_Result.dat";
     string user_factor_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/src/PMF_C/user_factor.model";
     string poi_factor_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/src/PMF_C/poi_factor.model";
     string poi_bias_path = "/home/anthonylife/Doctor/Code/MyPaperCode/NextLocation/src/PMF_C/poi_bias.model";

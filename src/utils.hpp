@@ -31,7 +31,7 @@ namespace __gnu_cxx
     template<> struct hash<const std::string> {
         size_t operator()(const std::string& s) const { 
             return hash<const char*>()( s.c_str() );
-        } //
+        }
     };
     template<> struct hash<std::string> {
         size_t operator()(const std::string& s) const { 
@@ -183,15 +183,16 @@ void utils::write_submission(std::vector<std::vector<std::string> >* recommendat
 
     for (std::vector<std::vector<std::string> >:: iterator it=recommendation_result->begin();
             it!=recommendation_result->end(); it++) {
+        if (it->size() == 0) {
+            *out << idx << std::endl;
+            continue;
+        }
         *out << idx << "\t";
         for (std::vector<std::string>:: iterator it1=it->begin();
                 it1!=it->end()-1; it1++) {
             *out << *it1 << ",";
         }
-        if (it->size() > 0)
-            *out << *(it->end()-1) << std::endl;
-        else
-            *out << std::endl;
+        *out << *(it->end()-1) << std::endl;
         idx++;
     }
     out->close();

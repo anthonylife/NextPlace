@@ -78,8 +78,8 @@ class PMF{
 public:
     void paraInit(){
         // Method control variable 
-        niters = 1;
-        nsample = 1; 
+        niters = 25;
+        nsample = 5; 
     
         // Hyper-parameter setting 
         ndim = 10; 
@@ -156,7 +156,7 @@ public:
                 delete[] grids_pois[i];
             delete[] grids_pois;
         }
-        printf("haha2\n");
+        
         if (!pois_latlng) {
             for (map<string, Poi*>::iterator it = pois_latlng->begin();
                     it != pois_latlng->end(); it++) {
@@ -164,14 +164,13 @@ public:
             }
             delete pois_latlng;
         }
-        printf("haha3\n");
+        
         if (total_factor)
             delete[] total_factor;
         if (user_factor)
             delete[] user_factor;
         if (poi_factor)
             delete[] poi_factor;
-        printf("haha4\n");
 
         user_ids.clear();
         map<string, int>(user_ids).swap(user_ids);
@@ -181,7 +180,6 @@ public:
         map<string, int>(poi_ids).swap(poi_ids);
         rpoi_ids.clear();
         map<int, string>(rpoi_ids).swap(rpoi_ids);
-        printf("haha5\n");
     }
 
 
@@ -211,6 +209,7 @@ public:
             //uitls::muldimZero(poi_factor[p], ndim);
             ind += ndim;
         }
+        
         if (bias_tag) {
             poi_bias = total_factor+ind;
             utils::muldimGaussrand(poi_bias, n_pois);
@@ -598,7 +597,6 @@ public:
         //    vector<string>(*it).swap(*it);
         //}
         delete recommendation_result;
-        printf("haha1\n");
     }
 
     void saveModel() {

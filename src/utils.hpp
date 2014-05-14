@@ -185,14 +185,13 @@ void utils::write_submission(std::vector<std::vector<std::string> >* recommendat
             it!=recommendation_result->end(); it++) {
         if (it->size() == 0) {
             *out << idx << std::endl;
-            continue;
+        } else {
+            *out << idx << "\t";
+            for (std::vector<std::string>:: iterator it1=it->begin(); it1!=it->end()-1; it1++) {
+                *out << *it1 << ",";
+            }
+            *out << *(it->end()-1) << std::endl;
         }
-        *out << idx << "\t";
-        for (std::vector<std::string>:: iterator it1=it->begin();
-                it1!=it->end()-1; it1++) {
-            *out << *it1 << ",";
-        }
-        *out << *(it->end()-1) << std::endl;
         idx++;
     }
     out->close();
